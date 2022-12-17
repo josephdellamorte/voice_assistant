@@ -3,6 +3,8 @@ from multiprocessing import Process
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+from gtts import gTTS
+import sys
 
 def record_first(durration):
     #kick off decoding of second audio
@@ -40,11 +42,28 @@ def process_file(file):
 
     # print the recognized text
     print(result.text)
+    lower_text=str.lower(result.text)
     #if "Sarah" in result.text:
     #    print("\a\a\a\a\a\a\a\a\a\a")
-    print("'hey part keeper' partial match score:" + str(fuzz.partial_ratio("hey part keeper",result.text)))
-    print("'hey park keeper' partial match score:" + str(fuzz.partial_ratio("hey park keeper",result.text)))
-    print("'how many minislims do we have?' partial match score:" + str(fuzz.partial_ratio("how many minislims do we have?",result.text)))
+    hpk=fuzz.partial_ratio("hey part keeper",lower_text)
+    hppk=fuzz.partial_ratio("hey park keeper",lower_text)
+    hmmsdwh=fuzz.partial_ratio("how many minislims do we have?",lower_text)
+    if verbosity:
+        print("'hey part keeper' partial match score:" + str(hpk))
+        print("'hey park keeper' partial match score:" + str(hppk))
+        print("'how many minislims do we have?' partial match score:" + str(hmmsdwh))
+
+    language = 'en'
+    if (hpk > 90) | (hppk > 90):
+        words = 'hey user! whats up?'
+        myobj = gTTS(text=words, lang=language, slow=False)
+        myobj.save("welcome.mp3")
+        os.system("afplay welcome.mp3")
+    elif (hmmsdwh> 90):
+        words = "I'm not sure but in the future I might be able to tell you"
+        myobj = gTTS(text=words, lang=language, slow=False)
+        myobj.save("welcome.mp3")
+        os.system("afplay welcome.mp3")
 
     def match_phrase():
         phrases=[ "can you check how many items are in _____",
@@ -68,6 +87,15 @@ def process_file(file):
         
 if __name__ == "__main__":
 
+
+    #check for verbose level 1 and 2
+    try:
+        if sys.argv[1]== "-v":
+            verbosity = 1
+            print("verbosity is set to high")
+    except:
+        verbosity=0
+    #load model
     model = whisper.load_model("small.en")
     record_durration = 13
 
