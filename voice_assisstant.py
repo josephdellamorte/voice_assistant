@@ -18,6 +18,7 @@ class voice_assistant():
                 ("what is the time",):"I don't know that yet",
                 ("what is the year",):"I don't know that yet",
                 ("when was iggy born",):"July 28 2022",
+                ("what are the mysteries for friday?","for friday the rosary mysteries are?","what are the rosary mysteries for friday"):"the sorrowful mysteries",
                 }
         self.next_response=None
 
@@ -29,10 +30,8 @@ class voice_assistant():
         for inquisition_list in self.inquisitions_response_map.keys():
             for question in inquisition_list:
                 score=self.score_phrase(question)
-                print(str(question) + " " + str(score))
                 if (score > best_score) and score > 90:
                     best_score=score
-                    print('better score '+ str(score))
                     self.next_response=self.inquisitions_response_map[inquisition_list]
                 
 
@@ -88,9 +87,8 @@ class voice_assistant():
             '''
         self.best_response()
         if (self.next_response!=None):
-            print('TALKING')
             helper.aprint(self.next_response)
-            self.next_response!=None
+            self.next_response=None
 
         
 if __name__ == "__main__":
