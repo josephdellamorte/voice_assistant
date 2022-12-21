@@ -4,6 +4,8 @@ import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 from gtts import gTTS
+import pyaudio
+import wave
 import sys
 import datetime
 
@@ -40,25 +42,62 @@ class voice_assistant():
         '''Given a string the computer reads off the text'''
         myobj = gTTS(text=text, lang=language, slow=slow_speed)
         myobj.save("acoustic_print.mp3")
-        os.system("afplay acoustic_print.mp3")
+        os.system("powershell -c (New-Object Media.SoundPlayer './acoustic_print.mp3').PlaySync();")
 
     def record_first(self,durration):
         '''records to the first file'''
         #kick off decoding of second audio
-        os.system('ffmpeg -y -f avfoundation -i ":0" -t '+str(durration)+' first_audio.mp3 &>/dev/null')
-
+        self.record_wav("first_audio.wav",durration)
         
     def record_second(self,durration):
         '''records to the second file'''
         #kick off decoding of first record_audio
         #start recording of second audio
-        os.system('ffmpeg -y -f avfoundation -i ":0" -t '+str(durration)+' second_audio.mp3 &>/dev/null')
+        self.record_wav("second_audio.wav",durration)
 
     def record_third(self,durration):
         '''records to the third file'''
         #kick off decoding of second record_audio
         #start recording of third audio
-        os.system('ffmpeg -y -f avfoundation -i ":0" -t '+str(durration)+' third_audio.mp3 &>/dev/null')
+        self.record_wav("third_audio.wav",durration)
+
+    def record_wav(self,filename,duration):
+        CHUNK = 1024
+        FORMAT = pyaudio.paInt16
+        CHANNELS = 1
+        RATE = 44100
+        RECORD_SECONDS = duration
+        WAVE_OUTPUT_FILENAME = filename
+
+        p = pyaudio.PyAudio()
+
+        stream = p.open(format=FORMAT,
+                        channels=CHANNELS,
+                        rate=RATE,
+                        input=True,
+                        frames_per_buffer=CHUNK)
+        
+        print(filename + " recording")
+
+        frames = []
+
+        for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+            data = stream.read(CHUNK)
+            frames.append(data)
+
+        print(filename + " done recording")
+
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
+        wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(p.get_sample_size(FORMAT))
+        wf.setframerate(RATE)
+        wf.writeframes(b''.join(frames))
+        wf.close()
+
 
     def process_file(self,file):
         '''runs the audio recording through the whisper speech recognition library'''
@@ -110,21 +149,21 @@ if __name__ == "__main__":
     first_record_process.join()
     second_record_process = Process(target=helper.record_second, args=(record_durration, ))
     second_record_process.start()
-    helper.process_file("first_audio.mp3")
+    helper.process_file("first_audio.wav")
     second_record_process.join()
 
     for i in range(5):
         third_record_process = Process(target=helper.record_third, args=(record_durration, ))
         third_record_process.start()
-        helper.process_file("second_audio.mp3")
+        helper.process_file("second_audio.wav")
         third_record_process.join()
 
         first_record_process = Process(target=helper.record_first, args=(record_durration, ))
         first_record_process.start()
-        helper.process_file("third_audio.mp3")
+        helper.process_file("third_audio.wav")
         first_record_process.join()
 
         second_record_process = Process(target=helper.record_second, args=(record_durration, ))
         second_record_process.start()
-        helper.process_file("first_audio.mp3")
+        helper.process_file("first_audio.wav")
         second_record_process.join()
